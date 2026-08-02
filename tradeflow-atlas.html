@@ -162,6 +162,9 @@ modules.forEach(m=>{let b=document.createElement('button');b.className='nav';b.d
     .exportBtn{min-width:92px!important;gap:7px!important}
     .exportBtn:before{content:'Export'!important;margin:0!important;font:800 10px/1 Manrope!important}
     .exportBtn:after{content:'↓'!important;margin:0!important;font:800 18px/1 Arial!important;transform:translateY(-1px)!important}
+    .mobileRouteChevron{position:relative!important;font-size:0!important}
+    .mobileRouteChevron:before{content:''!important;position:absolute!important;left:50%!important;top:50%!important;width:0!important;height:0!important;border-left:5px solid transparent!important;border-right:5px solid transparent!important;border-top:6px solid #583cd3!important;transform:translate(-50%,-32%)!important}
+    .mobileRoutePicker[open] .mobileRouteChevron:before{transform:translate(-50%,-68%) rotate(180deg)!important}
   }
   /* Tables keep meaningful phrases intact; small screens scroll the table rather than splitting words. */
   @media(max-width:840px){
