@@ -366,6 +366,111 @@ modules.forEach(m=>{let b=document.createElement('button');b.className='nav';b.d
   html:root .assistantIcon.abhyudaya{background:linear-gradient(135deg,var(--scene-deep),var(--scene-accent))!important;border-color:var(--scene-deep)!important}
   html:root .assistantIcon:hover{transform:translateY(-1px)!important;filter:brightness(1.06)!important}
   html:root .plannerClose,html:root .tfWxoClose{background:var(--scene-deep)!important;border-color:var(--scene-accent)!important;color:#fff!important}
+  /* Responsive reconciliation: this is the final layout contract for every screen size.
+     It deliberately overrides earlier experimental breakpoint rules. */
+  html{overflow-x:hidden!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{overflow-x:hidden!important}
+  *,*:before,*:after{min-width:0}
+  img,svg,video,canvas{max-width:100%;height:auto}
+  .nav,.nav span,.nav small,.mobileRouteLabel,.mission h2,.mission p,.quest h3,.quest p,.block summary,.inside,.plannerMsg{overflow-wrap:anywhere!important}
+  .block summary{display:flex!important;align-items:center!important;gap:10px!important}
+  .block summary:after{flex:0 0 auto!important;margin-left:auto!important}
+  .quests{grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))!important}
+  .journalGrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,285px),1fr))!important}
+  .shelf{grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr))!important}
+  .inside .tableWrap{max-width:100%!important;overflow:auto!important;-webkit-overflow-scrolling:touch!important}
+  .inside .table{min-width:760px!important;table-layout:auto!important}
+  .inside .table th,.inside .table td{word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important}
+  @media(min-width:1025px){
+    .layout{display:grid!important;grid-template-columns:252px minmax(0,1fr)!important;gap:20px!important}
+    .side{position:sticky!important;top:14px!important;align-self:start!important}
+    .toolbar{position:sticky!important;top:14px!important;grid-template-columns:minmax(120px,1fr) minmax(190px,320px) max-content max-content!important}
+  }
+  @media(min-width:621px) and (max-width:1024px){
+    .wrap{max-width:960px!important;padding-inline:18px!important}
+    .layout{display:block!important}
+    .side{position:relative!important;top:auto!important;margin:0 0 14px!important;padding:10px!important}
+    .side:before{display:block!important}
+    .side>#nav{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;height:auto!important;max-height:none!important;overflow:visible!important}
+    .nav{width:100%!important;min-height:44px!important;padding:9px 10px!important;text-align:left!important}
+    .toolbar{position:relative!important;top:auto!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;padding:0 0 9px!important}
+    .toolbar .crumb{grid-column:1!important;grid-row:1!important;align-self:center!important}
+    .toolbar .search{grid-column:2!important;grid-row:1!important;width:100%!important}
+    .toolbar .themeToggle{grid-column:1!important;grid-row:2!important;width:100%!important;justify-content:center!important}
+    .toolbar .exportBtn{grid-column:2!important;grid-row:2!important;width:100%!important;justify-content:center!important}
+    .weekGrid{grid-template-columns:repeat(7,178px)!important}
+  }
+  @media(max-width:620px){
+    .hero{min-height:248px!important;clip-path:ellipse(142% 100% at 50% 0)!important}
+    .heroIn{padding:23px 18px 49px!important}
+    .heroIn h1{font-size:clamp(40px,12vw,50px)!important;line-height:.94!important}
+    .hero p{max-width:315px!important;font-size:12px!important;line-height:1.45!important}
+    .wrap{margin-top:-19px!important;padding:0 12px 92px!important}
+    .score{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+    .score div{min-height:72px!important;padding:11px!important}
+    .score div:first-child{grid-column:1/-1!important;min-height:64px!important}
+    .score div:last-child{grid-column:auto!important;display:block!important}
+    .score strong{font-size:21px!important;line-height:1!important}
+    .score small{display:block!important;margin-top:5px!important;font-size:10px!important;line-height:1.2!important}
+    .layout{display:block!important;margin-top:11px!important}
+    .side{position:relative!important;top:auto!important;z-index:12!important;margin:0 0 9px!important;padding:4px!important;min-height:52px!important;overflow:visible!important}
+    .side:before,.side>#nav{display:none!important}
+    .mobileRoutePicker{display:block!important;width:100%!important}
+    .mobileRoutePicker summary{grid-template-columns:auto auto minmax(0,1fr) auto!important;min-height:44px!important;padding:0 10px!important;border-radius:9px!important}
+    .mobileRouteLabel{font-size:12px!important}
+    .mobileRouteCurrentIcon,.mobileRouteOption b{display:grid!important;place-items:center!important;width:23px!important;height:23px!important;border-radius:7px!important;background:var(--scene-soft)!important;color:var(--scene-accent)!important;flex:0 0 23px!important}
+    .mobileRouteCurrentIcon svg,.mobileRouteOption b svg{display:block!important;width:14px!important;height:14px!important;stroke:currentColor!important;fill:none!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+    /* Native <details> hiding is defeated by an older display:grid rule above.
+       Keep this menu hidden until the route control is actually opened. */
+    .mobileRoutePicker:not([open]) .mobileRouteMenu{display:none!important}
+    .mobileRoutePicker[open] .mobileRouteMenu{position:absolute!important;z-index:90!important;left:0!important;right:0!important;top:calc(100% + 6px)!important;bottom:auto!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-content:start!important;gap:6px!important;max-height:min(31vh,228px)!important;min-height:0!important;overflow:auto!important;padding:8px!important;border-radius:10px!important;background:var(--scene-surface)!important;border-color:var(--scene-line)!important;box-shadow:0 14px 28px #17203b2b!important}
+    .mobileRoutePicker[open] summary{position:relative!important;z-index:91!important}
+    .mobileRouteOption{grid-template-columns:24px minmax(0,1fr)!important;gap:7px!important;min-height:44px!important;padding:7px 8px!important;font-size:11px!important;overflow:hidden!important}
+    .mobileRouteOption b{width:23px!important;height:23px!important;font-size:10px!important}
+    .mobileRouteOption span{display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    .toolbar{position:relative!important;top:auto!important;z-index:9!important;display:grid!important;grid-template-columns:minmax(0,1fr) 42px 42px!important;align-items:center!important;gap:6px!important;min-height:50px!important;margin:0 0 12px!important;padding:4px!important;border:1px solid var(--scene-line)!important;border-bottom:2px solid var(--scene-accent)!important;border-radius:9px!important;background:var(--scene-surface)!important;box-shadow:none!important}
+    .toolbar .crumb,.toolbar .search{display:none!important}
+    .mobileSearchToggle{display:flex!important;grid-column:1!important;grid-row:1!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important;height:42px!important;padding:0 10px!important;border:1px solid var(--scene-line)!important;border-radius:7px!important;background:transparent!important;color:var(--scene-ink)!important;font:800 12px/1 Manrope!important;white-space:nowrap!important}
+    .mobileSearchToggle span:first-child{font:700 20px/1 Arial!important}
+    .toolbar{grid-template-columns:minmax(0,1fr) minmax(96px,auto) 42px!important}
+    .themeToggle{display:inline-flex!important;grid-column:2!important;grid-row:1!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-width:96px!important;width:auto!important;height:42px!important;min-height:42px!important;padding:0 8px!important;border-radius:7px!important;font-size:0!important;overflow:hidden!important;white-space:nowrap!important}
+    .themeToggle:before{content:'◐'!important;display:block!important;flex:0 0 auto!important;background:transparent!important;font:700 18px/1 Arial!important}
+    .themeToggle:after{content:attr(data-scene)!important;display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;font:800 10px/1 Manrope,sans-serif!important;color:var(--scene-on-accent)!important;letter-spacing:0!important;text-transform:none!important}
+    .themeToggle__key,.themeToggle__value{display:none!important}
+    .exportBtn{display:grid!important;grid-column:3!important;grid-row:1!important;place-items:center!important;width:42px!important;height:42px!important;min-height:42px!important;padding:0!important;border-radius:7px!important;color:transparent!important;font-size:0!important;line-height:0!important;overflow:hidden!important;text-indent:200%!important;white-space:nowrap!important}
+    .exportBtn:before{content:'⇩'!important;display:block!important;color:var(--scene-ink)!important;font:800 22px/1 Arial!important;text-indent:0!important}
+    .exportBtn:after{content:none!important;display:none!important}
+    .toolbar.mobileSearchOpen{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+    .toolbar.mobileSearchOpen .mobileSearchToggle,.toolbar.mobileSearchOpen .themeToggle,.toolbar.mobileSearchOpen .exportBtn{visibility:hidden!important;pointer-events:none!important}
+    .toolbar.mobileSearchOpen .search{display:block!important;position:absolute!important;z-index:75!important;inset:4px 46px 4px 4px!important;width:auto!important;height:42px!important;min-height:42px!important;padding:0 11px!important;border:1px solid var(--scene-accent)!important;border-radius:7px!important;background:var(--scene-surface)!important;color:var(--scene-ink)!important;font:600 14px/1 Manrope!important;box-shadow:0 9px 22px #17203b24!important}
+    .toolbar.mobileSearchOpen .search::placeholder{color:color-mix(in srgb,var(--scene-ink) 58%,transparent)!important}
+    .toolbar.mobileSearchOpen .mobileSearchClose{display:grid!important;place-items:center!important;position:absolute!important;z-index:76!important;top:9px!important;right:9px!important;width:32px!important;height:32px!important;padding:0!important;border:1px solid var(--scene-line)!important;border-radius:7px!important;background:var(--scene-soft)!important;color:var(--scene-ink)!important;font:700 20px/1 Arial!important}
+    .searchResults,.toolbar .searchResults{top:53px!important;left:0!important;right:0!important;width:auto!important;max-height:min(57vh,430px)!important;border-color:var(--scene-line)!important;background:var(--scene-surface)!important;box-shadow:0 14px 28px #17203b24!important}
+    .mission{padding:19px 17px!important}
+    .mission h2{font-size:clamp(25px,8vw,32px)!important;line-height:1.04!important}
+    .mission p{font-size:13px!important}
+    .chips{gap:5px!important}.chip{font-size:10px!important;padding:5px 7px!important}
+    .quests{grid-template-columns:1fr!important}.quest{padding:14px!important}
+    .journalGrid,.shelf{grid-template-columns:1fr!important}
+    .weekPlanner{padding:16px!important}.weekGrid{grid-template-columns:repeat(7,164px)!important}
+    .assistantDock{right:10px!important;bottom:calc(env(safe-area-inset-bottom) + 9px)!important;z-index:80!important}
+    .assistantIcon{width:38px!important;height:38px!important;font-size:18px!important}
+    .planner{right:10px!important;bottom:calc(env(safe-area-inset-bottom) + 61px)!important;width:calc(100vw - 20px)!important;max-height:calc(100vh - 82px)!important}
+    .planner.abhyudayaOpen{right:8px!important;bottom:8px!important;width:calc(100vw - 16px)!important}
+    .plannerBody{height:min(42vh,310px)!important}
+    .plannerForm{grid-template-columns:minmax(0,1fr) auto!important}.plannerForm input{min-width:0!important}
+  }
+  @media(max-width:360px){
+    .mobileRoutePicker[open] .mobileRouteMenu{grid-template-columns:1fr!important;max-height:min(40vh,270px)!important}
+    .mobileSearchToggle span:last-child{display:none!important}
+    .mobileSearchToggle{padding:0!important}
+    .score strong{font-size:19px!important}
+  }
+  @media(max-width:1024px){
+    html,body{width:100%!important;max-width:100vw!important;margin:0!important}
+    .hero,.wrap{width:100%!important;max-width:100%!important}
+    .wrap{margin-left:auto!important;margin-right:auto!important}
+  }
 </style><script>
 (() => {
   const remote = location.protocol !== 'file:';
@@ -420,14 +525,16 @@ modules.forEach(m=>{let b=document.createElement('button');b.className='nav';b.d
     picker=document.createElement('details');picker.className='mobileRoutePicker';
     const summary=document.createElement('summary');
     const kicker=document.createElement('span');kicker.className='mobileRouteKicker';kicker.textContent='Route';
+    const currentIcon=document.createElement('b');currentIcon.className='mobileRouteCurrentIcon';currentIcon.setAttribute('aria-hidden','true');
     const label=document.createElement('strong');label.className='mobileRouteLabel';
     const chevron=document.createElement('i');chevron.className='mobileRouteChevron';chevron.textContent='⌄';
-    summary.append(kicker,label,chevron);
+    summary.append(kicker,currentIcon,label,chevron);
     const menu=document.createElement('div');menu.className='mobileRouteMenu';
     const buttons=[...nav.querySelectorAll('.nav')];
     const clean=button=>{const marker=button.querySelector('b')?.textContent.trim()||'';const name=button.textContent.trim().slice(marker.length).trim();return name||button.textContent.trim();};
-    const refresh=()=>{const active=nav.querySelector('.nav.active')||buttons[0];label.textContent=clean(active);buttons.forEach(source=>source.__mobileRouteOption?.classList.toggle('active',source===active));};
-    buttons.forEach(source=>{const option=document.createElement('button');option.type='button';option.className='mobileRouteOption';const marker=document.createElement('b');marker.textContent=source.querySelector('b')?.textContent.trim()||'•';const text=document.createElement('span');text.textContent=clean(source);option.append(marker,text);option.onclick=()=>{source.click();picker.open=false;setTimeout(refresh,0);};menu.append(option);source.__mobileRouteOption=option;});
+    const copyIcon=(target,source)=>{const sourceIcon=source.querySelector('b');if(sourceIcon?.querySelector('svg'))target.innerHTML=sourceIcon.innerHTML;else target.textContent=sourceIcon?.textContent.trim()||'•';};
+    const refresh=()=>{const active=nav.querySelector('.nav.active')||buttons[0];label.textContent=clean(active);copyIcon(currentIcon,active);buttons.forEach(source=>source.__mobileRouteOption?.classList.toggle('active',source===active));};
+    buttons.forEach(source=>{const option=document.createElement('button');option.type='button';option.className='mobileRouteOption';const marker=document.createElement('b');marker.setAttribute('aria-hidden','true');copyIcon(marker,source);const text=document.createElement('span');text.textContent=clean(source);option.append(marker,text);option.onclick=()=>{source.click();picker.open=false;setTimeout(refresh,0);};menu.append(option);source.__mobileRouteOption=option;});
     picker.__refresh=refresh;picker.append(summary,menu);side.append(picker);nav.addEventListener('click',()=>setTimeout(refresh,0));refresh();
   }
   function installMobileToolbar() {
