@@ -1,9 +1,9 @@
 # Deploy TradeFlow Atlas on Railway
 
-1. Push this project folder to a private GitHub repository. Do not commit `outputs/.env` or `outputs/tradeflow-atlas.sqlite3`.
+1. Push the contents of this `outputs` folder to a private GitHub repository. Do not commit `.env` or `tradeflow-atlas.sqlite3`.
 2. In Railway, create a **New Project** and select **Deploy from GitHub repo**.
-3. Railway detects `requirements.txt` and `railway.json`. It installs the Python dependencies and starts `python3 outputs/tradeflow_server.py`.
-4. Add these Railway service variables from your local `outputs/.env` (never paste them into source files):
+3. Railway detects `requirements.txt` and `railway.json`. It installs the Python dependencies and starts `python3 tradeflow_server.py`.
+4. Add these Railway service variables from your local `.env` (never paste them into source files):
 
    - `WATSONX_APIKEY`
    - `WATSONX_PROJECT_ID`

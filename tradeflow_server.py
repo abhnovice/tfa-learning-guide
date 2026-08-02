@@ -7,6 +7,8 @@ import os
 import re
 import sqlite3
 import ssl
+import subprocess
+import tempfile
 from html import unescape
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -23,6 +25,8 @@ DATA_DIR = Path(os.environ.get("TRADEFLOW_DATA_DIR", ROOT))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 DATABASE = DATA_DIR / "tradeflow-atlas.sqlite3"
 CURRICULUM = ROOT.parent / "work" / "curriculum-source" / "curriculum"
+EXPORTER = ROOT.parent / "work" / "export_tradeflow_xlsx.mjs"
+LOCAL_NODE = os.environ.get("NODE_BINARY", "/Users/abhyudayamarya/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node")
 ENV_FILE = ROOT / ".env"
 SIGNAL_CACHE: dict[str, object] = {"created_at": 0.0, "items": []}
 IAM_TOKEN_CACHE: dict[str, object] = {"token": "", "expires_at": 0.0}
@@ -72,8 +76,21 @@ def plain_note(value: str) -> str:
 
 def build_excel_export(payload: dict[str, list[dict[str, object]]]) -> bytes:
     """Create the local export without a machine-specific Node.js dependency."""
-    from openpyxl import Workbook
-    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    except ImportError:
+        # The existing local Codex runtime can still export before pip installs
+        # the Railway dependency. Production always takes the portable path above.
+        node = Path(LOCAL_NODE)
+        if not node.is_file() or not EXPORTER.is_file():
+            raise RuntimeError("Excel export needs openpyxl. Run: pip install -r requirements.txt")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            data_file = Path(temp_dir) / "tradeflow-data.json"
+            output_file = Path(temp_dir) / "tradeflow-atlas-export.xlsx"
+            data_file.write_text(json.dumps(payload), encoding="utf-8")
+            subprocess.run([str(node), str(EXPORTER), str(data_file), str(output_file)], check=True, capture_output=True, text=True)
+            return output_file.read_bytes()
 
     workbook = Workbook()
     workbook.remove(workbook.active)
