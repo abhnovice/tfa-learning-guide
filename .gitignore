@@ -1,2 +1,4 @@
 .env
 __pycache__
+tradeflow-atlas.sqlite3
+tradeflow-atlas.sqlite3-*

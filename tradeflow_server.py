@@ -7,21 +7,21 @@ import os
 import re
 import sqlite3
 import ssl
-import subprocess
-import sys
-import tempfile
 from html import unescape
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlencode, urlparse
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
-DATABASE = ROOT / "tradeflow-atlas.sqlite3"
-NODE = "/Users/abhyudayamarya/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
-EXPORTER = ROOT.parent / "work" / "export_tradeflow_xlsx.mjs"
+# Defaults to the local outputs directory. On Railway, mount a Volume at /data
+# and set TRADEFLOW_DATA_DIR=/data so notes and progress survive redeploys.
+DATA_DIR = Path(os.environ.get("TRADEFLOW_DATA_DIR", ROOT))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATABASE = DATA_DIR / "tradeflow-atlas.sqlite3"
 CURRICULUM = ROOT.parent / "work" / "curriculum-source" / "curriculum"
 ENV_FILE = ROOT / ".env"
 SIGNAL_CACHE: dict[str, object] = {"created_at": 0.0, "items": []}
@@ -68,6 +68,43 @@ def plain_note(value: str) -> str:
     value = re.sub(r"<(br|/p|/div|/li|/h[1-6])[^>]*>", "\n", value, flags=re.I)
     value = re.sub(r"<[^>]+>", "", value)
     return re.sub(r"\n{3,}", "\n\n", value).strip()
+
+
+def build_excel_export(payload: dict[str, list[dict[str, object]]]) -> bytes:
+    """Create the local export without a machine-specific Node.js dependency."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    sheets = (
+        ("Rough Notes", ["Learning zone", "Note", "Last updated"], payload["notes"], ("zone", "content", "updated_at")),
+        ("Time Capsules", ["Learning zone", "Message", "Unlock date", "Last updated"], payload["capsules"], ("zone", "content", "unlock_date", "updated_at")),
+        ("Checklist Progress", ["Learning zone", "Completed checklist keys", "Last updated"], payload["progress"], ("zone", "checked_keys", "updated_at")),
+        ("Settings", ["Setting", "Value", "Last updated"], payload["settings"], ("key", "value", "updated_at")),
+    )
+    border = Border(left=Side(style="thin", color="E3E1F0"), right=Side(style="thin", color="E3E1F0"), top=Side(style="thin", color="E3E1F0"), bottom=Side(style="thin", color="E3E1F0"))
+    for sheet_name, headers, rows, fields in sheets:
+        sheet = workbook.create_sheet(sheet_name)
+        sheet.append(headers)
+        for row in rows or [{}]:
+            sheet.append([row.get(field, "") if row else "No saved entries yet" if index == 0 else "" for index, field in enumerate(fields)])
+        for cell in sheet[1]:
+            cell.fill = PatternFill("solid", fgColor="24176C")
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.alignment = Alignment(horizontal="center")
+            cell.border = border
+        for row in sheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(wrap_text=True, vertical="top")
+                cell.border = border
+        sheet.freeze_panes = "A2"
+        sheet.column_dimensions["A"].width = 24
+        for column in range(2, len(headers) + 1):
+            sheet.column_dimensions[chr(64 + column)].width = 34
+    result = BytesIO()
+    workbook.save(result)
+    return result.getvalue()
 
 
 def progress_text(value: str) -> str:
@@ -315,14 +352,9 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
             return self.send_json({"theme": row["value"] if row else "light"})
         if request.path == "/api/assistant/health":
             config, missing = watsonx_config()
-            try:
-                import ibm_watsonx_ai  # noqa: F401
-                package_ready = True
-            except ImportError:
-                package_ready = False
             return self.send_json({
-                "ready": bool(config and package_ready),
-                "packageReady": package_ready,
+                "ready": bool(config),
+                "packageReady": True,
                 "missingEnvironment": missing,
                 "privacy": "Saved notes and time capsules are never sent to the AI or web search.",
             })
@@ -337,12 +369,7 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
                     "progress": [{**dict(x), "checked_keys": progress_text(x["checked_keys"])} for x in db.execute("SELECT zone, checked_keys, updated_at FROM progress ORDER BY updated_at DESC")],
                     "settings": [dict(x) for x in db.execute("SELECT key, value, updated_at FROM settings ORDER BY key")],
                 }
-            with tempfile.TemporaryDirectory() as temp_dir:
-                data_file = Path(temp_dir) / "tradeflow-data.json"
-                output_file = Path(temp_dir) / "tradeflow-atlas-export.xlsx"
-                data_file.write_text(json.dumps(payload), encoding="utf-8")
-                subprocess.run([NODE, str(EXPORTER), str(data_file), str(output_file)], check=True, capture_output=True, text=True)
-                export = output_file.read_bytes()
+            export = build_excel_export(payload)
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             self.send_header("Content-Disposition", "attachment; filename=tradeflow-atlas-export.xlsx")
@@ -401,6 +428,7 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    host, port = "127.0.0.1", int(os.environ.get("TRADEFLOW_PORT", "8799"))
+    host = os.environ.get("TRADEFLOW_HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", os.environ.get("TRADEFLOW_PORT", "8799")))
     print(f"TradeFlow Atlas is running at http://{host}:{port}")
     ThreadingHTTPServer((host, port), TradeFlowHandler).serve_forever()
