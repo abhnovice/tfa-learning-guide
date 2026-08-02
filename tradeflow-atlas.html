@@ -180,6 +180,63 @@ modules.forEach(m=>{let b=document.createElement('button');b.className='nav';b.d
     :root[data-theme="dark"] .inside p.chip{background:transparent!important;border-left-color:#a996ff!important;color:#d8dcf4!important}
     :root[data-theme="dark"] .inside p.chip b,:root[data-theme="dark"] .inside p.chip em{color:#f0efff!important}
   }
+  /* Editorial operations workspace: precise edges, calm surfaces, no dashboard gloss. */
+  body{background:#f5f6f8!important}
+  .hero{clip-path:none!important;border-radius:0 0 16px 16px!important}
+  .hero:after,.mission:after{display:none!important}
+  .wrap{margin-top:-18px!important}
+  .score div,.side,.mission,.quest,.block,.journal,.journalBox,.weekPlanner,.industrySignals{border-radius:10px!important;box-shadow:none!important}
+  .score div{border-color:#d9dce5!important}
+  .side{background:#fff!important;border-color:#d9dce5!important}
+  .mission{background:#fff!important;border-color:#d9dce5!important}
+  .mission h2{letter-spacing:-.04em!important}
+  .chip{border-radius:5px!important;background:#f7f8fb!important;border-color:#d8dce6!important}
+  .quest{border-color:#d9dce5!important}
+  .quest:hover{transform:none!important;box-shadow:none!important}
+  .block{border-color:#d9dce5!important}
+  .block summary{padding:14px 16px!important}
+  .block summary:after{border-radius:5px!important}
+  .toolbar{border-radius:8px!important;backdrop-filter:none!important}
+  .tableWrap,.inside pre,.watsonx{border-radius:8px!important}
+  :root[data-theme="dark"] body{background:#11131a!important}
+  :root[data-theme="dark"] .side,:root[data-theme="dark"] .mission,:root[data-theme="dark"] .score div,:root[data-theme="dark"] .quest,:root[data-theme="dark"] .block,:root[data-theme="dark"] .journal,:root[data-theme="dark"] .journalBox{box-shadow:none!important}
+  @media(max-width:620px){
+    .hero{border-radius:0 0 12px 12px!important}
+    .score div,.side,.mission,.quest,.block,.journal,.journalBox{border-radius:9px!important}
+    .mobileRoutePicker summary,.toolbar,.mobileSearchToggle,.themeToggle,.exportBtn{border-radius:8px!important}
+    .assistantDock{border-radius:10px!important}
+    .assistantIcon{border-radius:7px!important}
+  }
+  /* Control-tower cut: deliberately crisp, structural and non-decorative. */
+  .hero{border-radius:0!important}
+  .wrap{max-width:1160px!important}
+  .score{gap:8px!important}
+  .score div{border-radius:3px!important;border-top:3px solid #5e3bf2!important}
+  .score div:nth-child(2){border-top-color:#35a884!important}
+  .score div:nth-child(3){border-top-color:#e69745!important}
+  .score div:nth-child(4){border-top-color:#6b82d9!important}
+  .side{border-radius:3px!important;border-left:3px solid #5e3bf2!important;padding:9px!important}
+  .nav{border-radius:3px!important}
+  .nav.active{box-shadow:none!important}
+  .mission{border-radius:3px!important;border-left:4px solid #5e3bf2!important;background:#fff!important}
+  .mission h2{max-width:760px!important}
+  .chip{border-radius:2px!important;border-left:2px solid #5e3bf2!important}
+  .quest{border-radius:3px!important;border-top-width:3px!important}
+  .block{border-radius:3px!important;border-left:3px solid #d8dce7!important}
+  .block[open]{border-left-color:#5e3bf2!important}
+  .block summary{border-radius:0!important}
+  .block summary:after{border-radius:2px!important}
+  .journal,.journalBox,.weekPlanner,.industrySignals{border-radius:3px!important}
+  .tableWrap,.inside pre,.watsonx{border-radius:2px!important}
+  .toolbar{border-radius:2px!important;border-bottom:2px solid #5e3bf2!important}
+  :root[data-theme="dark"] .mission{background:#191d3c!important;border-left-color:#a996ff!important}
+  :root[data-theme="dark"] .block{border-left-color:#4c5683!important}
+  :root[data-theme="dark"] .block[open]{border-left-color:#a996ff!important}
+  @media(max-width:620px){
+    .score div,.side,.mission,.quest,.block,.journal,.journalBox{border-radius:3px!important}
+    .mobileRoutePicker summary,.toolbar,.mobileSearchToggle,.themeToggle,.exportBtn{border-radius:3px!important}
+    .assistantDock,.assistantIcon{border-radius:3px!important}
+  }
   @media(max-width:360px){.assistantIcon{width:28px!important;height:28px!important;font-size:13px!important}}
   /* Tables keep meaningful phrases intact; small screens scroll the table rather than splitting words. */
   @media(max-width:840px){
