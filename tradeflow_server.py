@@ -273,7 +273,7 @@ def watsonx_config() -> tuple[dict[str, str] | None, list[str]]:
         "apikey": os.environ.get("WATSONX_APIKEY", ""),
         "project_id": os.environ.get("WATSONX_PROJECT_ID", ""),
         "url": os.environ.get("WATSONX_URL", ""),
-        "model_id": os.environ.get("WATSONX_MODEL_ID", "ibm/granite-4-h-small"),
+        "model_id": os.environ.get("WATSONX_MODEL_ID", "mistralai/mistral-large"),
     }
     missing = [name for name in ("WATSONX_APIKEY", "WATSONX_PROJECT_ID", "WATSONX_URL") if not os.environ.get(name)]
     return (values if not missing else None), missing
@@ -375,6 +375,30 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
                 "missingEnvironment": missing,
                 "privacy": "Saved notes and time capsules are never sent to the AI or web search.",
             })
+        if request.path == "/api/notes/archive":
+            with connection() as db:
+                entries = [
+                    {"zone": x["zone"], "content": plain_note(x["content"]), "created_at": x["created_at"]}
+                    for x in db.execute(
+                        "SELECT zone, content, created_at FROM note_entries ORDER BY id DESC"
+                    )
+                ]
+            return self.send_json({"entries": entries})
+        if request.path == "/api/capsules/archive":
+            with connection() as db:
+                entries = [
+                    {
+                        "zone": x["zone"],
+                        "content": x["content"],
+                        "unlock_date": x["unlock_date"],
+                        "updated_at": x["updated_at"],
+                        "unlocked": x["unlock_date"] <= __import__("datetime").date.today().isoformat(),
+                    }
+                    for x in db.execute(
+                        "SELECT zone, content, unlock_date, updated_at FROM capsules ORDER BY unlock_date"
+                    )
+                ]
+            return self.send_json({"entries": entries})
         if request.path == "/api/industry-signals":
             force = parse_qs(request.query).get("refresh", [""])[0] == "1"
             return self.send_json(industry_signals(force=force))
