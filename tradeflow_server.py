@@ -315,9 +315,15 @@ WEB RESEARCH LEADS:
         "max_tokens": 280,
         "temperature": 0.2,
     }
+    
     chat_request = Request(endpoint, data=json.dumps(request_body).encode(), headers={"Authorization": "Bearer " + str(IAM_TOKEN_CACHE["token"]), "Content-Type": "application/json", "Accept": "application/json"})
-    with trusted_urlopen(chat_request, timeout=None) as chat_response:
-        payload = json.loads(chat_response.read().decode("utf-8"))
+    try:
+        with trusted_urlopen(chat_request, timeout=None) as chat_response:
+            payload = json.loads(chat_response.read().decode("utf-8"))
+    except HTTPError as error:
+        body = error.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"watsonx.ai HTTP {error.code}: {body}") from error
+    
     answer = str(payload["choices"][0]["message"]["content"]).strip()
     # Avoid presenting a half-finished final sentence if a provider stops at its token limit.
     if answer and answer[-1] not in ".!?`":
@@ -331,7 +337,52 @@ def generate_watsonx_answer_with_timeout(question: str, curriculum: list[dict[st
     """Compatibility wrapper: inference is intentionally allowed to finish without a time cutoff."""
     return generate_watsonx_answer(question, curriculum, sources)
 
+def huggingface_config() -> tuple[dict[str, str] | None, list[str]]:
+    values = {
+        "token": os.environ.get("HF_TOKEN", ""),
+        "model_id": os.environ.get("HF_MODEL_ID", "meta-llama/Llama-3.3-70B-Instruct"),
+    }
+    missing = [name for name in ("HF_TOKEN",) if not os.environ.get(name)]
+    return (values if not missing else None), missing
 
+
+def generate_huggingface_answer(question: str, curriculum: list[dict[str, str]], sources: list[dict[str, str]]) -> str:
+    config, missing = huggingface_config()
+    if not config:
+        raise RuntimeError("Configure " + ", ".join(missing) + " locally before enabling live AI.")
+    local_context = "\n\n".join(f"[{item['source']}]\n{item['excerpt']}" for item in curriculum) or "No directly matching local excerpt was found."
+    web_context = "\n".join(f"- {item['title']}: {item['url']}" for item in sources) or "(None.)"
+    system = """You are a knowledgeable supply chain and operations expert. Answer the user's question thoroughly and directly using your own expertise. If relevant local curriculum or web sources are provided below, you may use them to enrich your answer, but you are not limited to them. Provide as much useful detail as the question warrants."""    
+    user_content = f"""USER QUESTION:
+{question}
+
+LOCAL CURRICULUM (private to this local app; never include saved notes):
+{local_context}
+
+WEB RESEARCH LEADS:
+{web_context}"""
+    request_body = {
+        "model": config["model_id"],
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_content},
+        ],
+        "max_tokens": 800,
+        "temperature": 0.2,
+    }
+    chat_request = Request(
+        "https://router.huggingface.co/v1/chat/completions",
+        data=json.dumps(request_body).encode(),
+        headers={"Authorization": "Bearer " + config["token"], "Content-Type": "application/json"},
+    )
+    with trusted_urlopen(chat_request, timeout=None) as chat_response:
+        payload = json.loads(chat_response.read().decode("utf-8"))
+    answer = str(payload["choices"][0]["message"]["content"]).strip()
+    if answer and answer[-1] not in ".!?`":
+        complete = re.findall(r".*?[.!?](?:\s|$)", answer, flags=re.S)
+        if complete:
+            answer = "".join(complete).strip()
+    return answer or "I could not form a complete response. Please try a more specific question."
 class TradeFlowHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -368,7 +419,7 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
                 row = db.execute("SELECT value FROM settings WHERE key = 'theme'").fetchone()
             return self.send_json({"theme": row["value"] if row else "light"})
         if request.path == "/api/assistant/health":
-            config, missing = watsonx_config()
+            config, missing = huggingface_config()
             return self.send_json({
                 "ready": bool(config),
                 "packageReady": True,
@@ -434,7 +485,7 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
         curriculum = relevant_curriculum(question)
         sources = web_search(question) if data.get("useWeb", True) else []
         try:
-            answer = generate_watsonx_answer_with_timeout(question, curriculum, sources)
+            answer = generate_huggingface_answer(question, curriculum, sources)
         except RuntimeError as error:
             return self.send_json({
                 "answer": local_guidance(question, curriculum),
@@ -443,9 +494,11 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
                 "sources": sources,
                 "mode": "local-guidance",
             })
-        except Exception:
+        except Exception as error:
+            import traceback
+            traceback.print_exc()
             return self.send_json({
-                "error": "watsonx.ai could not complete that request. Check your regional URL, project access, and model ID.",
+                "error": f"watsonx.ai could not complete that request: {error}",
                 "curriculum": curriculum,
                 "sources": sources,
             }, HTTPStatus.BAD_GATEWAY)
