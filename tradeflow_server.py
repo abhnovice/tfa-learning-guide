@@ -450,7 +450,7 @@ def industry_signals(force: bool = False) -> dict[str, object]:
         '("trade promotion" OR "trade spend" OR "revenue growth management" OR (retail AND (CPG OR FMCG OR "consumer goods")))',
     )
     today = date.today()
-    from_date = today - timedelta(days=30)
+    from_date = today - timedelta(days=7)
     try:
         articles = []
         for query in queries:
