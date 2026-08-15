@@ -215,6 +215,97 @@ def relevant_curriculum(question: str, limit: int = 3) -> list[dict[str, str]]:
     return [{"title": title, "excerpt": excerpt, "source": f"Your curriculum · {title}"} for _, title, excerpt in candidates[:limit]]
 
 
+def notion_relevant_context(question: str, limit: int = 3) -> list[dict[str, str]]:
+    """Retrieve a small set of relevant Notion pages for the current question, if a token is configured."""
+    token = (os.environ.get("NOTION_API") or "").strip()
+    if not token or not question.strip():
+        return []
+    tokens = {item.lower() for item in re.findall(r"[A-Za-z][A-Za-z0-9&/-]{2,}", question)}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28",
+    }
+    try:
+        search_request = Request(
+            "https://api.notion.com/v1/search",
+            data=json.dumps({
+                "query": question,
+                "filter": {"property": "object", "value": "page"},
+                "page_size": max(5, limit * 5),
+            }).encode("utf-8"),
+            headers=headers,
+            method="POST",
+        )
+        with trusted_urlopen(search_request, timeout=10) as response:
+            payload = json.loads(response.read().decode("utf-8", errors="ignore"))
+    except Exception:
+        return []
+
+    results: list[tuple[int, str, str, str]] = []
+    for page in payload.get("results", [])[: max(5, limit * 5)]:
+        if page.get("object") != "page":
+            continue
+        title = ""
+        properties = page.get("properties") or {}
+        for key, value in properties.items():
+            if not isinstance(value, dict):
+                continue
+            if value.get("type") == "title":
+                title = "".join(item.get("plain_text", "") for item in value.get("title", []) if isinstance(item, dict))
+                break
+            if key == "title" and isinstance(value.get("title"), list):
+                title = "".join(item.get("plain_text", "") for item in value.get("title", []) if isinstance(item, dict))
+                break
+        if not title:
+            title = "Notion page"
+        page_id = str(page.get("id") or "")
+        try:
+            blocks_request = Request(
+                f"https://api.notion.com/v1/blocks/{page_id}/children?page_size=100",
+                headers=headers,
+                method="GET",
+            )
+            with trusted_urlopen(blocks_request, timeout=10) as block_response:
+                block_payload = json.loads(block_response.read().decode("utf-8", errors="ignore"))
+        except Exception:
+            block_payload = {"results": []}
+
+        block_chunks: list[str] = []
+        for block in block_payload.get("results", []):
+            if not isinstance(block, dict):
+                continue
+            block_type = block.get("type")
+            content = block.get(block_type) or {}
+            rich_text = content.get("rich_text", []) if isinstance(content, dict) else []
+            texts: list[str] = []
+            for item in rich_text:
+                if not isinstance(item, dict):
+                    continue
+                text_value = item.get("plain_text")
+                if text_value:
+                    texts.append(str(text_value))
+                    continue
+                nested = item.get("text")
+                if isinstance(nested, dict):
+                    text_value = nested.get("content")
+                    if text_value:
+                        texts.append(str(text_value))
+            text = "".join(texts)
+            if text:
+                block_chunks.append(text)
+        excerpt = " ".join(block_chunks)[:700].strip()
+        if not excerpt:
+            excerpt = title
+        title_lower = title.lower()
+        excerpt_lower = excerpt.lower()
+        score = sum(title_lower.count(token) for token in tokens) + sum(excerpt_lower.count(token) for token in tokens)
+        if score or not results:
+            results.append((score, title.strip() or "Notion page", excerpt.strip() or title.strip(), f"Notion · {title.strip() or 'Notion page'}"))
+    results.sort(key=lambda item: item[0], reverse=True)
+    return [{"title": title, "excerpt": excerpt, "source": source} for _, title, excerpt, source in results[:limit]]
+
+
 def local_guidance(question: str, curriculum: list[dict[str, str]]) -> str:
     """Server-side guidance when live model inference is unavailable."""
     rules = (
@@ -1073,6 +1164,9 @@ class TradeFlowHandler(SimpleHTTPRequestHandler):
         if previous_user_turn:
             context_question = f"{previous_user_turn[-600:]}\nFollow-up: {question}"
         curriculum = relevant_curriculum(context_question)
+        notion_context = notion_relevant_context(context_question, limit=2)
+        if notion_context:
+            curriculum = notion_context + curriculum
         # Document summaries and quizzes stay grounded in the upload unless the user asks a separate question.
         use_web = bool(data.get("useWeb", True)) and not (documents and mode in {"summarize", "quiz"})
         sources = web_search(context_question) if use_web else []
